@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+   Base layer — global primitives only
+   ========================================================= */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-ink-950 font-sans text-fg-primary antialiased;
+  }
+
+  /* Respect users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* =========================================================
+   Components layer — reusable slide pieces
+   ========================================================= */
+@layer components {
+  /* Page shell: centered content column */
+  .shell {
+    @apply mx-auto w-full max-w-shell px-6;
+  }
+
+  /* --- Ambient background --- */
+  .ambient-grid {
+    background-image:
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 2.5%, rgba(255, 255, 255, 0) 2.5%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.03) 2.5%, rgba(255, 255, 255, 0) 2.5%);
+  }
+
+  .ambient-glow-top {
+    @apply pointer-events-none absolute left-1/2 top-[-160px] h-[480px] w-[720px] -translate-x-1/2 rounded-full bg-[rgba(128,131,255,0.15)] blur-[140px];
+  }
+
+  .ambient-glow-bottom {
+    @apply pointer-events-none absolute bottom-[-160px] right-10 h-[350px] w-[500px] rounded-full bg-[rgba(4,180,162,0.1)] blur-[130px];
+  }
+
+  /* --- Pills / chips --- */
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/10 px-3.5 py-[7px];
+  }
+
+  .pill-glass {
+    @apply bg-[rgba(23,27,38,0.8)] backdrop-blur-[12px];
+  }
+
+  .pill-quiet {
+    @apply border-white/5 bg-[rgba(38,42,53,0.5)];
+  }
+
+  .pill-label {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-fg-secondary;
+  }
+
+  /* Small badge used inside cards (01 / TRACK) */
+  .chip {
+    @apply rounded border border-white/5 bg-ink-850 px-[9px] py-[3px] font-mono text-[11px] font-medium uppercase leading-[14px] tracking-[0.08em] text-fg-muted;
+  }
+
+  /* --- Cards --- */
+  .metric-card {
+    @apply flex min-w-px flex-1 flex-col gap-[21px] rounded-xl border border-white/[0.08] bg-[rgba(23,27,38,0.7)] p-[25px] backdrop-blur-[12px] transition duration-300;
+  }
+
+  .metric-card:hover {
+    @apply -translate-y-0.5 border-white/[0.16] bg-[rgba(26,31,44,0.8)];
+  }
+
+  .metric-icon {
+    @apply flex size-10 items-center justify-center rounded-lg border border-white/5 bg-ink-800 p-px;
+  }
+
+  /* --- Buttons --- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-3 rounded-xl font-display text-[15px] leading-[22.5px] transition duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-lavender;
+  }
+
+  .btn-primary {
+    @apply bg-accent-indigo px-8 py-4 font-semibold text-accent-deep shadow-cta hover:bg-[#8f92ff] active:translate-y-px;
+  }
+
+  .btn-ghost {
+    @apply border border-white/10 bg-[rgba(38,42,53,0.5)] px-[25px] py-[17px] font-medium text-fg-primary hover:border-white/20 hover:bg-[rgba(48,53,66,0.6)];
+  }
+
+  /* --- Footer icon buttons --- */
+  .icon-btn {
+    @apply flex size-8 items-center justify-center rounded-lg border border-white/5 bg-[rgba(23,27,38,0.4)] transition hover:border-white/20 hover:bg-ink-900 disabled:cursor-not-allowed disabled:hover:border-white/5 disabled:hover:bg-[rgba(23,27,38,0.4)];
+  }
+}
+
+/* =========================================================
+   Utilities layer — one-off helpers
+   ========================================================= */
+@layer utilities {
+  /* Gradient headline text */
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-accent-lavender via-accent-indigo to-accent-teal bg-clip-text text-transparent;
+  }
+
+  /* Live status dot with soft pulsing halo */
+  .status-dot {
+    @apply relative inline-flex size-2 shrink-0;
+  }
+
+  .status-dot::before {
+    @apply absolute inset-0 rounded-full bg-accent-teal opacity-75;
+    content: '';
+    animation: ping-soft 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .status-dot::after {
+    @apply relative size-2 rounded-full bg-accent-teal;
+    content: '';
+  }
+
+  /* Staggered entrance animation */
+  .reveal {
+    @apply animate-fade-up;
+  }
+}

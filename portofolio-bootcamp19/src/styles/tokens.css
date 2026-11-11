@@ -1,0 +1,189 @@
+﻿/* ==========================================================================
+   DESIGN TOKENS
+   Sumber: Figma "proyek-pemrograman" (fileKey mCeVn33wzMHGCZ9GYkjeMM)
+           canvas 7:2 - frame 01-home (7:283), 04-projects (7:3),
+           05-contact (7:153).
+
+   ATURAN:
+   - NAMA variabel bersifat kontrak. Jangan diganti/dihapus, hanya nilainya.
+   - Variabel baru boleh ditambahkan di blok "Figma:" di bawah.
+   - Komponen DILARANG memakai nilai hex/px literal. Selalu pakai var().
+   ========================================================================== */
+:root {
+  /* --- Color: surface --- */
+  /* Figma: canvas 1440x1440 fill #FFFFFF */
+  --color-bg: #ffffff;
+  /* Figma: card/stat/shortcut fill #E4E1F0 */
+  --color-surface: #e4e1f0;
+  /* Figma: card putih + stroke 2px #E4E1F0 */
+  --color-surface-raised: #ffffff;
+
+  /* --- Color: text --- */
+  /* Figma: heading & body utama di atas light bg */
+  --color-text: #0d0d12;
+  /* Figma: label/deskripsi gray-purple */
+  --color-text-muted: #5d5a6e;
+
+  /* --- Color: brand --- */
+  /* Figma: indigo brand (stat number, kata aksen section title) */
+  --color-primary: #4f5bd5;
+  /* turunan darken ~12% untuk hover (desain statis tanpa hover) */
+  --color-primary-hover: #3f4abf;
+  /* teks di atas indigo */
+  --color-primary-contrast: #ffffff;
+  /* Figma: stroke card & border permukaan */
+  --color-border: #e4e1f0;
+  /* tidak ada di Figma; di-align ke palet, kontras AA di atas #FFFFFF */
+  --color-danger: #d9364b;
+  /* tidak ada di Figma; di-align ke palet, kontras AA di atas #FFFFFF */
+  --color-success: #1fa97a;
+
+  /* --- Typography --- */
+  /* Figma: Montserrat 400/700 untuk seluruh UI & heading */
+  --font-sans: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Figma: JetBrains Mono 400 untuk meta/code/tag */
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Figma: 11px - tag tech, eyebrow mono, meta kecil */
+  --text-2xs: 0.6875rem;
+  /* Figma: 12px - baris tech-stack, mono meta */
+  --text-xs: 0.75rem;
+  /* Figma: 13px - deskripsi card, keterangan stat, label muted */
+  --text-sm: 0.8125rem;
+  /* Figma: 14px - nav link, tombol, body kecil */
+  --text-label: 0.875rem;
+  /* Figma: 16px - body, nama brand, lead hero */
+  --text-base: 1rem;
+  /* Figma: 18px - judul shortcut card */
+  --text-lg: 1.125rem;
+  /* Figma: 20px - judul project card */
+  --text-xl: 1.25rem;
+  /* Figma: 34px - angka statistik & section title */
+  --text-2xl: 2.125rem;
+  /* Figma: 46px - H1 page header */
+  --text-3xl: 2.875rem;
+  /* Figma: 58px - H1 hero */
+  --text-hero: 3.625rem;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  /* Figma: H1 hero 58px dengan line box 71px */
+  --leading-hero: 1.22;
+  --leading-normal: 1.65;
+
+  /* Figma: label form UPPERCASE ber-tracking lebar */
+  --tracking-wide: 0.08em;
+  --tracking-tight: -0.02em;
+
+  /* --- Spacing (skala 4px; nilai baru mengikuti jarak antar blok Figma) --- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-9: 2.25rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-25: 6.25rem;
+
+  /* --- Radius --- */
+  /* Figma: logo tile 40x40 r10 */
+  --radius-sm: 10px;
+  /* Figma: input & list block r16 */
+  --radius-md: 16px;
+  /* Figma: stat/shortcut card r18 */
+  --radius-lg: 18px;
+  /* Figma: project card 528x460 r22 */
+  --radius-xl: 22px;
+  /* Figma: tombol pill tinggi 46 (r23) */
+  --radius-pill: 999px;
+
+  /* --- Shadow (desain flat; shadow hanya untuk depth tipis & fokus) --- */
+  --shadow-sm: 0 1px 2px rgb(11 29 38 / 0.06);
+  --shadow-md: 0 8px 24px rgb(11 29 38 / 0.1);
+  --shadow-focus: 0 0 0 3px var(--color-focus-ring);
+
+  /* --- Layout --- */
+  /* Figma: konten x=180..1260 pada canvas 1440 -> 1080 */
+  --container-max: 1080px;
+  --container-wide: 1440px;
+  /* Figma: H1 hero membentang 1245px (x=98..1343) pada canvas 1440 */
+  --hero-title-width: 1245px;
+  --border-width: 1px;
+  /* Figma: stroke card putih = 2px */
+  --border-width-strong: 2px;
+  /* Figma: navbar 1440x72 */
+  --nav-height: 72px;
+  /* Figma: footer 1440x100 */
+  --footer-height: 100px;
+
+  /* --- Foto profil --- */
+  /* Figma tidak menyediakan foto; ukuran mengikuti grid hero 1080px. */
+  --photo-size-sm: 208px;
+  --photo-size-lg: 248px;
+  --photo-ring-width: 3px;
+
+  /* --- Motion --- */
+  --transition-fast: 140ms ease;
+
+  /* ========================================================================
+     Figma: variabel baru hasil ekstraksi node (palette gelap, aksen, dsb.)
+     ======================================================================== */
+
+  /* Figma: nav 1440x72, footer 1440x100 -> fill #0B1D26 */
+  --color-ink: #0b1d26;
+  /* Figma: stop 60% gradient hero */
+  --color-ink-soft: #1a1440;
+  /* Figma: stop 100% gradient hero */
+  --color-ink-deep: #3b1f6e;
+  /* Figma: stop 100% gradient tombol dark */
+  --color-ink-end: #2a1d57;
+
+  /* Figma: aksen neon cyan (badge, H1 accent, nav active, logo tile) */
+  --color-accent: #22e5f5;
+  --color-accent-hover: #5eeffa;
+  /* teks di atas cyan (kontras ~13:1) */
+  --color-accent-contrast: #0b1d26;
+  /* Figma: fill badge pill #22E5F5 @ 12% */
+  --color-accent-soft: rgb(34 229 245 / 0.12);
+
+  /* Figma: teks di atas permukaan gelap */
+  --color-text-on-dark: #ffffff;
+  /* Figma: body 16px hero */
+  --color-text-on-dark-muted: #d8d3ee;
+  /* Figma: baris tech-stack JetBrains Mono 12px */
+  --color-text-mono-dark: #9fb4c0;
+
+  /* ring fokus (a11y) - tidak ada di Figma */
+  --color-focus-ring: rgb(79 91 213 / 0.35);
+
+  /* Turunan on-dark: garis pemisah & elemen kontrol di atas #0B1D26
+     (#D8D3EE dengan opasitas, karena Figma tidak mendefinisikan border ini) */
+  --color-border-on-dark: rgb(216 211 238 / 0.24);
+  --color-border-on-dark-strong: rgb(216 211 238 / 0.28);
+  /* watermark inisial pada placeholder thumbnail project */
+  --color-overlay-mark: rgb(255 255 255 / 0.32);
+
+  /* Figma: hero 1440x780, vertical #0B1D26 -> #1A1440 60% -> #3B1F6E */
+  --gradient-hero: linear-gradient(180deg, #0b1d26 0%, #1a1440 60%, #3b1f6e 100%);
+  /* Figma: tombol dark 524x170 - #0B1D26 -> #2A1D57 (135deg) */
+  --gradient-button: linear-gradient(135deg, #0b1d26 0%, #2a1d57 100%);
+  /* Figma: deretan dash dekoratif pada hero */
+  --hero-dash: repeating-linear-gradient(
+    90deg,
+    rgb(216 211 238 / 0.45) 0 18px,
+    transparent 18px 34px
+  );
+}
+
+

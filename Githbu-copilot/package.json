@@ -1,0 +1,16 @@
+{
+  "name": "berijalan-batch19-orientation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Orientation keynote landing slide for Berijalan Academy Division - Bootcamp Batch 19.",
+  "scripts": {
+    "dev": "tailwindcss -i ./src/css/input.css -o ./dist/css/style.css --watch",
+    "build": "tailwindcss -i ./src/css/input.css -o ./dist/css/style.css --minify",
+    "serve": "npx --yes serve . -l 3000"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
+  }
+}
