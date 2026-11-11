@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { messageSchema, projectIdSchema } from "../server/validation.ts";
+import {
+  idParamSchema,
+  messageSchema,
+  projectBodySchema,
+  projectIdSchema,
+} from "../server/validation.ts";
 
 describe("messageSchema", () => {
   // --- Happy path ---
@@ -132,3 +137,83 @@ describe("projectIdSchema", () => {
     expect(projectIdSchema.safeParse("9007199254740993").success).toBe(false);
   });
 });
+
+  describe("idParamSchema", () => {
+    it("berperilaku sama dengan projectIdSchema", () => {
+      expect(idParamSchema.parse("7")).toBe(7);
+      expect(idParamSchema.safeParse("0").success).toBe(false);
+      expect(idParamSchema.safeParse("abc").success).toBe(false);
+    });
+  });
+
+  describe("projectBodySchema", () => {
+    const valid = {
+      title: "Proyek Contoh",
+      description: "Deskripsi proyek contoh yang cukup panjang untuk validasi.",
+      tech: "React, TypeScript",
+    };
+
+    it("menerima payload minimal tanpa tautan", () => {
+      const result = projectBodySchema.parse(valid);
+
+      expect(result.repo_url).toBeNull();
+      expect(result.demo_url).toBeNull();
+    });
+
+    it("mengubah string kosong menjadi null", () => {
+      const result = projectBodySchema.parse({
+        ...valid,
+        repo_url: "",
+        demo_url: "  ",
+      });
+
+      expect(result.repo_url).toBeNull();
+      expect(result.demo_url).toBeNull();
+    });
+
+    it("mempertahankan null eksplisit dari dashboard", () => {
+      const result = projectBodySchema.parse({
+        ...valid,
+        repo_url: null,
+        demo_url: null,
+      });
+
+      expect(result.repo_url).toBeNull();
+      expect(result.demo_url).toBeNull();
+    });
+
+    it("menerima URL http dan https", () => {
+      for (const url of ["https://github.com/a/b", "http://contoh.test"]) {
+        const result = projectBodySchema.parse({ ...valid, repo_url: url });
+        expect(result.repo_url).toBe(url);
+      }
+    });
+
+    it("menolak URL tanpa skema http(s)", () => {
+      for (const url of ["ftp://contoh.test", "github.com/a/b", "javascript:alert(1)"]) {
+        expect(projectBodySchema.safeParse({ ...valid, repo_url: url }).success).toBe(
+          false,
+        );
+      }
+    });
+
+    it("menolak judul terlalu pendek dan deskripsi terlalu pendek", () => {
+      const result = projectBodySchema.safeParse({
+        title: "x",
+        description: "pendek",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const fields = result.error.issues.map((issue) => issue.path.join("."));
+        expect(fields).toEqual(expect.arrayContaining(["title", "description"]));
+      }
+    });
+
+    it("memakai string kosong sebagai default tech", () => {
+      expect(projectBodySchema.parse(valid).tech).toBe("React, TypeScript");
+      expect(
+        projectBodySchema.parse({ title: "Dua Huruf", description: "Deskripsi cukup panjang." }).tech,
+      ).toBe("");
+    });
+  });

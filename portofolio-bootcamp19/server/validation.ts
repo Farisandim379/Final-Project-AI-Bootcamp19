@@ -45,3 +45,49 @@ export const projectIdSchema = z
   .transform((value) => Number(value))
   .refine((value) => Number.isSafeInteger(value), "ID harus bilangan bulat")
   .refine((value) => value > 0, "ID harus lebih dari 0");
+
+/** Alias semantik: aturan ID sama untuk proyek dan pesan. */
+export const idParamSchema = projectIdSchema;
+
+/**
+ * URL opsional: `null` dan string kosong sama-sama berarti "tidak ada tautan".
+ * Dashboard mengirim null secara eksplisit, jadi schema harus menerimanya.
+ */
+const optionalUrl = z
+  .string()
+  .trim()
+  .max(2048, "URL maksimal 2048 karakter")
+  .refine((value) => value === "" || /^https?:\/\/\S+$/i.test(value), {
+    message: "URL harus diawali http:// atau https://",
+  })
+  .transform((value) => (value === "" ? null : value))
+  .nullable()
+  .optional()
+  .default(null);
+
+/**
+ * Payload proyek dari dashboard. `repo_url`/`demo_url` boleh null karena tidak
+ * semua proyek punya repositori publik atau demo.
+ */
+export const projectBodySchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(2, "Judul minimal 2 karakter")
+    .max(120, "Judul maksimal 120 karakter"),
+  description: z
+    .string()
+    .trim()
+    .min(10, "Deskripsi minimal 10 karakter")
+    .max(1000, "Deskripsi maksimal 1000 karakter"),
+  repo_url: optionalUrl,
+  demo_url: optionalUrl,
+  tech: z
+    .string()
+    .trim()
+    .max(200, "Tech maksimal 200 karakter")
+    .optional()
+    .default(""),
+});
+
+export type ProjectBody = z.infer<typeof projectBodySchema>;

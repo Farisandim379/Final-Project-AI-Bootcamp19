@@ -8,12 +8,28 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { db } from "./db.ts";
-import { messageSchema, projectIdSchema } from "./validation.ts";
+import {
+  idParamSchema,
+  messageSchema,
+  projectBodySchema,
+  projectIdSchema,
+} from "./validation.ts";
 
 export const app = express();
 
 app.use(helmet());
 app.use(express.json({ limit: "10kb" }));
+
+/** Bentuk balasan 422 yang seragam untuk semua endpoint yang memvalidasi body. */
+function invalidPayload(res: Response, issues: { path: PropertyKey[]; message: string }[]) {
+  res.status(422).json({
+    error: "Data tidak valid",
+    issues: issues.map((issue) => ({
+      field: issue.path.join("."),
+      message: issue.message,
+    })),
+  });
+}
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
@@ -53,13 +69,7 @@ app.post("/api/messages", (req: Request, res: Response) => {
   const parsed = messageSchema.safeParse(req.body);
 
   if (!parsed.success) {
-    res.status(422).json({
-      error: "Data tidak valid",
-      issues: parsed.error.issues.map((issue) => ({
-        field: issue.path.join("."),
-        message: issue.message,
-      })),
-    });
+    invalidPayload(res, parsed.error.issues);
     return;
   }
 
@@ -69,6 +79,108 @@ app.post("/api/messages", (req: Request, res: Response) => {
     .run(name, email, body);
 
   res.status(201).json({ data: { id: Number(result.lastInsertRowid) } });
+});
+
+/** Kotak masuk dashboard: pesan terbaru lebih dulu. */
+app.get("/api/messages", (_req: Request, res: Response) => {
+  const rows = db
+    .prepare(
+      "SELECT id, name, email, body, created_at FROM messages ORDER BY created_at DESC, id DESC",
+    )
+    .all();
+  res.json({ data: rows });
+});
+
+app.delete("/api/messages/:id", (req: Request, res: Response) => {
+  const parsedId = idParamSchema.safeParse(req.params.id);
+  if (!parsedId.success) {
+    res.status(400).json({ error: "ID pesan tidak valid" });
+    return;
+  }
+
+  const result = db.prepare("DELETE FROM messages WHERE id = ?").run(parsedId.data);
+
+  if (result.changes === 0) {
+    res.status(404).json({ error: "Pesan tidak ditemukan" });
+    return;
+  }
+
+  res.status(204).end();
+});
+
+app.post("/api/projects", (req: Request, res: Response) => {
+  const parsed = projectBodySchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    invalidPayload(res, parsed.error.issues);
+    return;
+  }
+
+  const { title, description, repo_url, demo_url, tech } = parsed.data;
+  const result = db
+    .prepare(
+      "INSERT INTO projects (title, description, repo_url, demo_url, tech) VALUES (?, ?, ?, ?, ?)",
+    )
+    .run(title, description, repo_url, demo_url, tech);
+
+  const row = db
+    .prepare(
+      "SELECT id, title, description, repo_url, demo_url, tech, created_at FROM projects WHERE id = ?",
+    )
+    .get(Number(result.lastInsertRowid));
+
+  res.status(201).json({ data: row });
+});
+
+app.put("/api/projects/:id", (req: Request, res: Response) => {
+  const parsedId = projectIdSchema.safeParse(req.params.id);
+  if (!parsedId.success) {
+    res.status(400).json({ error: "ID proyek tidak valid" });
+    return;
+  }
+
+  const parsed = projectBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    invalidPayload(res, parsed.error.issues);
+    return;
+  }
+
+  const { title, description, repo_url, demo_url, tech } = parsed.data;
+  const result = db
+    .prepare(
+      "UPDATE projects SET title = ?, description = ?, repo_url = ?, demo_url = ?, tech = ? WHERE id = ?",
+    )
+    .run(title, description, repo_url, demo_url, tech, parsedId.data);
+
+  if (result.changes === 0) {
+    res.status(404).json({ error: "Proyek tidak ditemukan" });
+    return;
+  }
+
+  const row = db
+    .prepare(
+      "SELECT id, title, description, repo_url, demo_url, tech, created_at FROM projects WHERE id = ?",
+    )
+    .get(parsedId.data);
+
+  res.json({ data: row });
+});
+
+app.delete("/api/projects/:id", (req: Request, res: Response) => {
+  const parsedId = projectIdSchema.safeParse(req.params.id);
+  if (!parsedId.success) {
+    res.status(400).json({ error: "ID proyek tidak valid" });
+    return;
+  }
+
+  const result = db.prepare("DELETE FROM projects WHERE id = ?").run(parsedId.data);
+
+  if (result.changes === 0) {
+    res.status(404).json({ error: "Proyek tidak ditemukan" });
+    return;
+  }
+
+  res.status(204).end();
 });
 
 // Satu server menyajikan API sekaligus bundle React (tanpa CORS).

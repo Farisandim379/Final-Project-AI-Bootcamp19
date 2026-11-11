@@ -1,8 +1,8 @@
 # Architecture Notes
 
 > **Status:** Hasil analisis aktual codebase (bukan rencana).
-> **Terakhir diperbarui:** 2026-11-11
-> **Cara verifikasi:** `npm run typecheck` (bersih), `npm test` (37/37 PASS), `npm run build` (sukses), smoke test endpoint produksi (lulus).
+> **Terakhir diperbarui:** 2026-11-12
+> **Cara verifikasi:** `npm run typecheck` (bersih), `npm test` (59/59 PASS), `npm run build` (sukses), smoke test endpoint produksi (lulus).
 
 ---
 
@@ -62,9 +62,10 @@ flowchart LR
 | `server/` | Backend Express: konfigurasi app, routing, validasi, akses database |
 | `src/` | Frontend React: entry, komponen halaman, klien API, style |
 | `src/pages/` | Satu file per section halaman (`Hero`, `Projects`, `Contact`) |
-| `src/components/` | Komponen UI yang dapat dipakai ulang (**saat ini kosong** — belum ada komponen bersama) |
+| `src/admin/` | Dashboard `/admin`: shell tab, kotak masuk pesan, dan CRUD proyek. Dimuat lazy agar tidak masuk bundle publik |
+| `src/components/` | Komponen UI yang dapat dipakai ulang (ikon, layout, UI primitif, konten statis) |
 | `src/lib/` | Modul non-React: klien HTTP (`api.ts`) dan helper murni (`project.ts`) — mudah diuji tanpa DOM |
-| `src/styles/` | `tokens.css` (design tokens) + `global.css` (semua styling) |
+| `src/styles/` | `tokens.css` (design tokens) + `global.css` (styling publik) + `admin.css` (styling dashboard, dimuat hanya di `/admin`) |
 | `tests/` | Unit + integration test (Vitest), 4 file |
 | `.github/` | Konfigurasi GitHub Copilot: instructions, instructions spesifik, reusable prompts |
 | `data/` | Dibuat otomatis saat runtime; berisi `portfolio.db` (**di-gitignore**) |
@@ -76,8 +77,8 @@ flowchart LR
 | --- | --- |
 | `server/index.ts` | Entry: baca `PORT`, `app.listen()` |
 | `server/app.ts` | Instansiasi Express, `helmet()`, `express.json({ limit: "10kb" })`, seluruh route, static serving, 404 handler, error handler |
-| `server/validation.ts` | Skema Zod: `messageSchema`, `projectIdSchema` + tipe turunan |
-| `server/db.ts` | Buka koneksi `DatabaseSync`, `CREATE TABLE IF NOT EXISTS`, seed 3 proyek |
+| `server/validation.ts` | Skema Zod: `messageSchema`, `projectIdSchema`/`idParamSchema`, `projectBodySchema` + tipe turunan |
+| `server/db.ts` | Buka koneksi `DatabaseSync`, `CREATE TABLE IF NOT EXISTS`, seed 4 proyek |
 
 Pemisahan `app.ts` dari `index.ts` **disengaja**: Supertest dapat mengimpor `app` tanpa membuka port.
 
@@ -89,9 +90,12 @@ Pemisahan `app.ts` dari `index.ts` **disengaja**: Supertest dapat mengimpor `app
 
 | Konteks | Entry point |
 | --- | --- |
-| Frontend | [`index.html`](./index.html) → [`src/main.tsx`](./src/main.tsx) → `createRoot().render(<App />)` |
+| Frontend publik | [`index.html`](./index.html) → [`src/main.tsx`](./src/main.tsx) → `createRoot().render(<App />)` |
+| Dashboard admin | Path `/admin` di [`src/main.tsx`](./src/main.tsx) → lazy `import("./admin/AdminApp.tsx")` + `import("./styles/admin.css")` |
 | Backend | [`server/index.ts`](./server/index.ts) → `app.listen(3001)` |
 | Test | [`vite.config.ts`](./vite.config.ts) `test.include` → `tests/**/*.test.ts` |
+
+**Tanpa React Router.** Hanya ada satu rute tambahan (`/admin`), jadi percabangan `window.location.pathname` sudah memadai dan menjaga bundle publik tetap ramping: `AdminApp` + `admin.css` hanya diunduh saat rute `/admin` dibuka.
 
 ### 3.2 Alur eksekusi — boot server
 
@@ -184,6 +188,20 @@ sequenceDiagram
 | Injeksi SQL | `db.prepare(...)` dengan placeholder `?` — tidak ada string concatenation | `server/app.ts` |
 | Kebocoran error | Error body-parser dipetakan per `type` (`413` terlalu besar, `415` charset/encoding, `400` JSON rusak); hanya fault server yang di-`console.error` + `500` generik | `server/app.ts` |
 
+### 3.6 Dashboard `/admin` tanpa autentikasi
+
+Rute `/admin` sengaja dibuat tanpa login agar bisa dibuka langsung lewat URL. Konsekuensinya **harus dipahami sebelum deploy publik**:
+
+| Endpoint | Efek bila URL diketahui pihak lain |
+| --- | --- |
+| `GET /api/messages` | Seluruh pesan masuk (nama, email, isi) terbaca — ini data pribadi pengirim |
+| `DELETE /api/messages/:id` | Pesan bisa dihapus permanen |
+| `POST` / `PUT` / `DELETE /api/projects` | Daftar proyek publik bisa diubah atau dikosongkan |
+
+Mitigasi yang sudah ada: `helmet()`, batas body 10 kB, validasi Zod, dan SQL parameterized. **Yang belum ada:** autentikasi, otorisasi, dan rate limiting.
+
+Bila nanti ingin dikunci tanpa mengubah UI, opsi paling murah adalah satu middleware `Authorization: Bearer <ADMIN_TOKEN>` dari env pada tiga route tulis + `GET /api/messages`, lalu dashboard mengirim header tersebut dari sebuah halaman login sederhana.
+
 ---
 
 ## 4. Modul/File Paling Krusial Beserta Dependensinya
@@ -197,9 +215,12 @@ sequenceDiagram
 | 3 | [`server/validation.ts`](./server/validation.ts) | Kontrak input — dipakai backend **dan** sebagai sumber tipe frontend | `zod` |
 | 4 | [`src/lib/api.ts`](./src/lib/api.ts) | Satu-satunya jembatan frontend → backend; menormalisasi error jadi `HttpError` | `fetch` (browser) |
 | 5 | [`src/pages/Projects.tsx`](./src/pages/Projects.tsx) | Konsumen data utama; mengelola state loading/error/ready | React, `src/lib/api.ts` |
-| 6 | [`src/pages/Contact.tsx`](./src/pages/Contact.tsx) | Satu-satunya jalur tulis (POST) + penanganan validasi per field | React, `src/lib/api.ts` |
+| 6 | [`src/pages/Contact.tsx`](./src/pages/Contact.tsx) | Jalur tulis publik (POST) + penanganan validasi per field | React, `src/lib/api.ts` |
 | 7 | [`src/styles/tokens.css`](./src/styles/tokens.css) | Sumber tunggal nilai visual; titik integrasi Figma MCP | — |
 | 8 | [`src/lib/project.ts`](./src/lib/project.ts) | Transformasi data murni (snake_case → camelCase, truncate) — diuji langsung | — |
+| 9 | [`src/admin/AdminApp.tsx`](./src/admin/AdminApp.tsx) | Shell dashboard `/admin`: tab kotak masuk & proyek | React, `src/lib/api.ts` |
+| 10 | [`src/admin/MessageInbox.tsx`](./src/admin/MessageInbox.tsx) | Baca + hapus pesan dari tabel `messages` | React, `src/lib/api.ts` |
+| 11 | [`src/admin/ProjectManager.tsx`](./src/admin/ProjectManager.tsx) | CRUD proyek; satu-satunya jalur ubah data proyek | React, `src/lib/api.ts`, `project.ts` |
 
 ### 4.2 Graf dependensi
 
@@ -223,9 +244,19 @@ flowchart TD
     MAIN --> CSS["src/styles/global.css"]
     CSS --> TOK["src/styles/tokens.css"]
 
-    T1["tests/validation.test.ts"] --> VAL
-    T2["tests/api.test.ts"] --> APP
-    T3["tests/ui-helpers.test.ts"] --> HELP["src/lib/project.ts"]
+        MAIN -.->|"/admin" lazy| ADMIN["src/admin/AdminApp.tsx"]
+        ADMIN --> INBOX["src/admin/MessageInbox.tsx"]
+        ADMIN --> PM["src/admin/ProjectManager.tsx"]
+        PM --> PF["src/admin/ProjectForm.tsx"]
+        INBOX --> API
+        PM --> API
+        PM --> PROJMOD["src/lib/project.ts"]
+        MAIN -.->|"/admin" lazy| ACSS["src/styles/admin.css"]
+        ACSS --> TOK
+
+        T1["tests/validation.test.ts"] --> VAL
+        T2["tests/api.test.ts"] --> APP
+        T3["tests/ui-helpers.test.ts"] --> HELP["src/lib/project.ts"]
         T4["tests/api-client.test.ts"] --> API
 ```
 
@@ -236,20 +267,19 @@ flowchart TD
 | Item | Dampak | Catatan |
 | --- | --- | --- |
 | `interface Project` di frontend diduplikasi dari skema DB | Risiko drift bila kolom berubah | Dapat disatukan lewat folder `shared/`, sengaja dihindari demi kesederhanaan |
-| `src/components/` masih kosong | Belum ada komponen bersama | Diisi saat implementasi Figma |
-| Tanpa autentikasi pada `GET /api/messages` | Pesan hanya bisa ditulis, tidak dibaca lewat API | Sesuai kebutuhan portofolio; endpoint baca sengaja tidak dibuat |
+| Dashboard `/admin` terbuka tanpa autentikasi | Siapa pun yang tahu URL bisa membaca pesan & mengubah proyek | Disengaja sesuai permintaan; lihat catatan keamanan di §6 |
 | File `.db` tidak persisten di hosts free-tier | Data hilang saat restart | Mitigasi: seed otomatis saat boot |
-| Belum ada rate limiting | Endpoint POST dapat di-spam | Kandidat perbaikan berikutnya (`express-rate-limit`); ditunda pada audit #1 |
-| Field pesan belum menolak karakter kontrol | Risiko log/terminal injection bila ada penampil pesan | Ditemukan pada audit (temuan #3), belum diperbaiki |
+| Belum ada rate limiting | Endpoint POST/PUT/DELETE dapat di-spam | Kandidat perbaikan berikutnya (`express-rate-limit`); ditunda pada audit #1 |
+| Field pesan belum menolak karakter kontrol | Risiko log/terminal injection bila ada penampil pesan | Ditemukan pada audit (temuan #3), kini tampil di dashboard — sebaiknya diperbaiki sebelum deploy publik |
 
 ### 4.4 Perintah verifikasi
 
 | Perintah | Cakupan | Status terakhir |
 | --- | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` seluruh `src`, `server`, `tests` | Lulus |
-| `npm test` | 4 file, 37 test | 37/37 PASS |
-| `npm run build` | Vite production build | Sukses (~226 kB JS, 70.6 kB gzip) |
-| Smoke test produksi | `/api/health`, `/api/projects`, POST valid, POST invalid, SPA fallback, 404 API | Semua sesuai harapan |
+| `npm test` | 4 file, 59 test | 59/59 PASS |
+| `npm run build` | Vite production build | Sukses (245 kB JS publik + chunk admin terpisah 13 kB) |
+| Smoke test produksi | `/api/health`, `/api/projects`, POST/PUT/DELETE, `/api/messages`, SPA fallback, 404 API | Semua sesuai harapan |
 
 ---
 

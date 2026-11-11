@@ -42,6 +42,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
 
+  // 204 No Content: tidak ada body untuk di-parse.
+  if (response.status === 204) return undefined as T;
+
   const payload = (await response.json().catch(() => null)) as
     | (T & Partial<ApiError>)
     | null;
@@ -104,4 +107,61 @@ export function groupIssues(
   }
 
   return Object.fromEntries(grouped);
+}
+
+/* ==========================================================================
+   DASHBOARD — kotak masuk & CRUD proyek
+   ========================================================================== */
+
+export interface Message {
+  id: number;
+  name: string;
+  email: string;
+  body: string;
+  created_at: string;
+}
+
+/** Payload tulis proyek; `null` berarti tautan memang tidak ada. */
+export interface ProjectInput {
+  title: string;
+  description: string;
+  repo_url: string | null;
+  demo_url: string | null;
+  tech: string;
+}
+
+export async function getMessages(): Promise<Message[]> {
+  const payload = await request<{ data?: Message[] }>("/api/messages");
+  return payload.data ?? [];
+}
+
+export async function deleteMessage(id: number): Promise<void> {
+  await request<void>(`/api/messages/${id}`, { method: "DELETE" });
+}
+
+export async function createProject(input: ProjectInput): Promise<Project> {
+  const payload = await request<{ data?: Project }>("/api/projects", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+  if (!payload.data) throw new HttpError(502, { error: "Respons server tidak valid" });
+  return payload.data;
+}
+
+export async function updateProject(
+  id: number,
+  input: ProjectInput,
+): Promise<Project> {
+  const payload = await request<{ data?: Project }>(`/api/projects/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+
+  if (!payload.data) throw new HttpError(502, { error: "Respons server tidak valid" });
+  return payload.data;
+}
+
+export async function deleteProject(id: number): Promise<void> {
+  await request<void>(`/api/projects/${id}`, { method: "DELETE" });
 }

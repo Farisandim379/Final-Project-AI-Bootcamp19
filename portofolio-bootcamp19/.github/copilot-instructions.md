@@ -8,7 +8,8 @@
   - `server/app.ts` — konfigurasi Express, routing, middleware (transport).
   - `server/validation.ts` — kontrak & validasi input (Zod).
   - `server/db.ts` — akses database via parameterized query.
-  - `src/pages/` — komponen halaman (presentasi).
+  - `src/pages/` — komponen halaman publik (presentasi).
+  - `src/admin/` — dashboard `/admin` (lazy-loaded di `src/main.tsx` tanpa React Router; memakai `src/styles/admin.css`).
   - `src/lib/` — klien API & helper murni (mudah diuji).
 - **Jangan** menambahkan lapisan/service baru tanpa kebutuhan nyata. Proyek ini kecil dan sengaja dijaga datar.
 
@@ -36,7 +37,7 @@
 - Semua query database **wajib** memakai placeholder `?` (`db.prepare(sql).get(param)`). Dilarang menyusun SQL dari string input.
 - Format response sukses: `{ "data": ... }`.
 - Format response gagal: `{ "error": "pesan" }`, dan untuk validasi tambahkan `{ "issues": [{ "field", "message" }] }`.
-- Kode status: `200` OK, `201` Created, `400` request tidak valid (mis. ID salah, JSON rusak), `404` tidak ditemukan, `422` gagal validasi, `500` kesalahan server.
+- Kode status: `200` OK, `201` Created, `204` No Content (DELETE), `400` request tidak valid (mis. ID salah, JSON rusak), `404` tidak ditemukan, `413`/`415` payload/encoding tidak didukung, `422` gagal validasi, `500` kesalahan server.
 - Selalu tangani `null`/`undefined` dan promise rejection secara eksplisit.
 
 ## 5. Keamanan & Pengujian
@@ -59,5 +60,5 @@
 | `npm run dev:api` | API Express di port 3001 |
 | `npm run build` | Build frontend ke `dist/` |
 | `npm start` | Jalankan server produksi (menyajikan API + `dist/`) |
-| `npm test` | Vitest (37 test) |
+| `npm test` | Vitest (4 file, 59 test) |
 | `npm run typecheck` | `tsc --noEmit` |
